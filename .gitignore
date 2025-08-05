@@ -1,0 +1,4 @@
+inet
+.*
+/server/*
+!.gitignore

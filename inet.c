@@ -33,6 +33,8 @@ int main(int argc, char *argv[]){
     char* header404 =    
         "HTTP/1.1 404 File Not Found\r\nContent-Type: text/plain\r\nContent-Length: 16\r\nConnection: close\r\n\r\nFile not found.\r\n";
     char* htmlheader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: "; 
+    char* jsheader = "HTTP/1.1 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: "; 
+    char* cssheader = "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: "; 
     char* htmlEnd = "\r\n\r\n";
 
     in_port_t port = htons(9005);
@@ -41,7 +43,7 @@ int main(int argc, char *argv[]){
     int s0 = socket(AF_INET, SOCK_STREAM, 0);
     const int optval = 1;
     int opt = setsockopt(s0, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-    
+
     if(opt < 0){
         printf("Err is %d", errno);
         return 5;
@@ -73,13 +75,13 @@ int main(int argc, char *argv[]){
                 char input[1];
                 read(0, &input, sizeof(input));
                 /*if(buf[0] == 'r' && buf[1] == 'e' && buf[2] == 'l' && input[0] == 'o'){
-                    printf("reloading html file\n");
-                    htmlFile = open(path, O_RDONLY);
-                    fstat(htmlFile, &stat);
-                    free(html);
-                    html = malloc(stat.st_size/sizeof(char));
-                    read(htmlFile, html, stat.st_size);
-                }*/
+                  printf("reloading html file\n");
+                  htmlFile = open(path, O_RDONLY);
+                  fstat(htmlFile, &stat);
+                  free(html);
+                  html = malloc(stat.st_size/sizeof(char));
+                  read(htmlFile, html, stat.st_size);
+                  }*/
                 if(input[0] == '\n'){
                     break; 
                 }
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]){
             time_t connectTime= time(NULL);
             time_t sendTime= time(NULL);
             s1 = accept(s0, NULL, NULL);
-            struct tm * timeinfo;
+            struct tm* timeinfo;
             timeinfo = localtime(&connectTime);
             struct sockaddr_in peeraddr = {0};
             socklen_t addrlen;
@@ -103,72 +105,79 @@ int main(int argc, char *argv[]){
             printf("Connected at: %s" , asctime(timeinfo));
             struct pollfd pollrd = {s1, POLLIN, 0};
             char prev[3];
-            for(;;){
-                if(time(NULL) - connectTime > 60 || time(NULL) - sendTime > 1){
-                    write(s1,timeoutHeader, 117);
-                    close(s1);
-                    break;
+            if(time(NULL) - connectTime > 60 || time(NULL) - sendTime > 1){
+                write(s1,timeoutHeader, 117);
+                printf("Closing %d due to timeout.\n",s1);
+                close(s1);
+                continue;
+            }
+            char text[10000];
+            pollread = poll(&pollrd,(nfds_t)1, 50);
+            if(pollread > 0){
+                sendTime = time(NULL);
+                int i = 0;
+                for(;poll(&pollrd, (nfds_t)1, 50); i++){
+                    read(s1, &text[i], 1);
+                } 
+                text[i] = '\0';
+                for(int j = 0; j < i; j++){
+                    putchar(text[j]);
                 }
-                char text[10000];
-                pollread = poll(&pollrd,(nfds_t)1, 50);
-                if(pollread > 0){
-                    sendTime = time(NULL);
-                    int i = 0;
-                    for(;poll(&pollrd, (nfds_t)1, 50); i++){
-                         read(s1, &text[i], 1);
-                    } 
-                    text[i] = '\0';
-                    for(int j = 0; j < i; j++){
-                       putchar(text[j]);
-                    }
-                    token* tokens = tokenizeString(text);
-                    /*for(int i = 0; tokens[i].type != END; i++){
-                        printf("%d:%d ",tokens[i].type, i );
-                        for(int j = 0; j < tokens[i].length; j++){
-                            putchar(tokens[i].start[j]);
-                        }
-                        putchar('\n');
-                    }*/
-                    HTTPRequest* request = parseHTTP(tokens);
+                token* tokens = tokenizeString(text);
+                /*for(int i = 0; tokens[i].type != END; i++){
+                  printf("%d:%d ",tokens[i].type, i );
+                  for(int j = 0; j < tokens[i].length; j++){
+                  putchar(tokens[i].start[j]);
+                  }
+                  putchar('\n');
+                  }*/
+                HTTPRequest* request = parseHTTP(tokens);
+                if(request == NULL){
+                    printf("Invalid HTTP Request\n");
+                    write(s1, header404, strlen(header404));
+                    continue;
+                }
+                char* path = malloc(strlen(cwd)+ strlen(request->headers[0].value)+1);
+                memcpy(path, cwd, strlen(cwd));
+                memcpy(path+strlen(cwd), request->headers[0].value, strlen(request->headers[0].value));
+                path[strlen(cwd)+ strlen(request->headers[0].value)] = '\0';
 
-                    if(request == NULL){
-                        printf("Invalid HTTP Request\n");
-                        write(s1, header404, strlen(header404));
-                        break;
-                    }
-                    char* path = malloc(strlen(cwd)+ strlen(request->headers[0].value)+1 );
-                    memcpy(path, cwd, strlen(cwd));
-                    memcpy(path+strlen(cwd), request->headers[0].value, strlen(request->headers[0].value));
-                    path[strlen(cwd)+ strlen(request->headers[0].value)] = '\0';
-                    
-                    if(access(path, F_OK) != 0){
-                        printf("Cannot find file specified: %s\n", path);
-                        write(s1,header404, strlen(header404));
-                        break;
-                    }
-                    int htmlFile = open(path, O_RDONLY);
-                    struct stat stat = {0}; 
-                    fstat(htmlFile, &stat);
-                    char *html = malloc(stat.st_size + 1);
-                    read(htmlFile, html, stat.st_size);
+                if(access(path, F_OK) != 0){
+                    printf("Cannot find file specified: %s\n", path);
+                    write(s1,header404, strlen(header404));
+                    continue;
+                }
+                int htmlFile = open(path, O_RDONLY);
+                struct stat stat = {0}; 
+                fstat(htmlFile, &stat);
+                char *html = malloc(stat.st_size + 1);
+                read(htmlFile, html, stat.st_size);
 
-                    html[stat.st_size] = '\0';
-                    printf("%s",html);
+                html[stat.st_size] = '\0';
+                //printf("%s",html);
+                if(request->headers[0].value[strlen(request->headers[0].value)-1] == 's' &&
+                        request->headers[0].value[strlen(request->headers[0].value)-2] == 'j' ){
 
+                    write(s1, jsheader, strlen(jsheader));
+                }else if (request->headers[0].value[strlen(request->headers[0].value)-1] == 's' &&
+                        request->headers[0].value[strlen(request->headers[0].value)-2] == 's' &&
+                        request->headers[0].value[strlen(request->headers[0].value)-3] == 'c' ){
+                    write(s1, cssheader, strlen(cssheader));
+                }else{
                     write(s1, htmlheader, strlen(htmlheader));
-                    // printf(htmlheader);
-                    char* size = numToStr((int)stat.st_size -1);
-                    write(s1, size,strlen(size));
-                    // printf(size);
-                    write(s1, htmlEnd, 4);
-                    // printf(htmlEnd);
-                    printf("sizeof(html) = %d\n" ,(int) stat.st_size);
-                    write(s1, html, (size_t)stat.st_size -1 );
-                    // printf(html);
-                    write(s1, htmlEnd, 4);
-                        close(s1);
-                        break;
                 }
+                // printf(htmlheader);
+                char* size = numToStr((int)stat.st_size -1);
+                write(s1, size,strlen(size));
+                // printf(size);
+                write(s1, htmlEnd, 4);
+                // printf(htmlEnd);
+                printf("sizeof(html) = %d\n" ,(int) stat.st_size);
+                write(s1, html, (size_t)stat.st_size -1 );
+                // printf(html);
+                write(s1, htmlEnd, 4);
+                    printf("Closing %d\n" ,s1);
+                    close(s1);
             }
         }
     }

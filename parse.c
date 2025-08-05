@@ -2,7 +2,7 @@
 
 HTTPRequest* parseHTTP(token* tokens){
     HTTPRequest* http = malloc(sizeof(HTTPRequest));
-    http->headers = malloc(sizeof(void*)*128);
+    http->headers = calloc(128, sizeof(void*));
     int i = 0;
 
     for(;tokens[i].type == WHITESPACE || tokens[i].type == NEWLINE;i++){}
@@ -46,7 +46,7 @@ HTTPRequest* parseHTTP(token* tokens){
     for(;;){
         if(tokens[i+1].type == END)
             break;
-        if(http->length >= 127)
+        if(http->length >= 126)
             break;
         if(tokens[i].type == NEWLINE)
             i++;
@@ -77,6 +77,9 @@ HTTPRequest* parseHTTP(token* tokens){
     return http;
 }
 int stringCmp(char* first, char* sec, int len){
+    if(first == NULL || sec == NULL)
+        return 0;
+    
     for(int i = 0; i < len; i++){
         if(first[i] == '\0' || sec[i] == '\0')
             return first[i] == sec[i];
@@ -110,6 +113,15 @@ token* tokenizeString(char* string){
         }
     }
     return tokens;
+}
+char* valFromKey(kVPair* map, char* key){
+    int len = strlen(key);
+    for(int i = 0; map[i].key != NULL;i++){
+       if(stringCmp(key, map[i].key, len)){
+            return map[i].value;
+       }
+    }
+   return NULL;
 }
 enum types evalChar(char chara){
     if(chara == '\n' || chara == '\r')

@@ -31,7 +31,7 @@ typedef struct {
    char* key;
    char* value;
 }kVPair;
-enum requestProto {
+enum requestProto { 
   INVALIDPROTOCOL,
   v9,
   v1,
@@ -43,11 +43,12 @@ enum requestProto {
 typedef struct {
     enum requestTypes rType;
     enum requestProto rProto;
-    int length;
+    int length; 
     kVPair* headers;
 }HTTPRequest;
 enum types evalChar(char);
 int stringCmp(char* first, char* sec, int len);
 token* tokenizeString(char* string);
 HTTPRequest* parseHTTP(token* tokens);
+char* valFromKey(kVPair*, char*);
 #endif
