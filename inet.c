@@ -15,6 +15,7 @@
 #include <poll.h>
 #include <linux/limits.h>
 #include <time.h>
+#include "parse.h"
 char* numToStr(int value);
 
 int main(int argc, char *argv[]){
@@ -27,20 +28,10 @@ int main(int argc, char *argv[]){
         printf("Too Many Arguments");
         return 10;
     }
-    char* path = strncat(cwd, "/love.html",  (size_t)11 );
-    if(access(cwd, F_OK) != 0){
-        printf("Cannot find file specified: %s", cwd);
-        return 11;
-    }
-    int htmlFile = open(path, O_RDONLY);
-    struct stat stat = {0}; 
-    fstat(htmlFile, &stat);
-    char *html = malloc(stat.st_size);
-    read(htmlFile, html, stat.st_size);
-    printf("%s",html);
     char* timeoutHeader = 
         "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nConnection: close\r\n\r\nRequest timed out.\r\n";
-        
+    char* header404 =    
+        "HTTP/1.1 404 File Not Found\r\nContent-Type: text/plain\r\nContent-Length: 16\r\nConnection: close\r\n\r\nFile not found.\r\n";
     char* htmlheader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: "; 
     char* htmlEnd = "\r\n\r\n";
 
@@ -81,14 +72,14 @@ int main(int argc, char *argv[]){
             for(;;){
                 char input[1];
                 read(0, &input, sizeof(input));
-                if(buf[0] == 'r' && buf[1] == 'e' && buf[2] == 'l' && input[0] == 'o'){
+                /*if(buf[0] == 'r' && buf[1] == 'e' && buf[2] == 'l' && input[0] == 'o'){
                     printf("reloading html file\n");
                     htmlFile = open(path, O_RDONLY);
                     fstat(htmlFile, &stat);
                     free(html);
                     html = malloc(stat.st_size/sizeof(char));
                     read(htmlFile, html, stat.st_size);
-                }
+                }*/
                 if(input[0] == '\n'){
                     break; 
                 }
@@ -118,39 +109,65 @@ int main(int argc, char *argv[]){
                     close(s1);
                     break;
                 }
-                char text[1];
+                char text[10000];
                 pollread = poll(&pollrd,(nfds_t)1, 50);
                 if(pollread > 0){
-                    
                     sendTime = time(NULL);
-                    ssize_t n = read(s1, &text, sizeof(text));
-                    putchar(text[0]);
-                    int c = text[0];
+                    int i = 0;
+                    for(;poll(&pollrd, (nfds_t)1, 50); i++){
+                         read(s1, &text[i], 1);
+                    } 
+                    text[i] = '\0';
+                    for(int j = 0; j < i; j++){
+                       putchar(text[j]);
+                    }
+                    token* tokens = tokenizeString(text);
+                    /*for(int i = 0; tokens[i].type != END; i++){
+                        printf("%d:%d ",tokens[i].type, i );
+                        for(int j = 0; j < tokens[i].length; j++){
+                            putchar(tokens[i].start[j]);
+                        }
+                        putchar('\n');
+                    }*/
+                    HTTPRequest* request = parseHTTP(tokens);
 
-                    if(n < 1){
+                    if(request == NULL){
+                        printf("Invalid HTTP Request\n");
+                        write(s1, header404, strlen(header404));
                         break;
                     }
-                    if(prev[2] == '\r'&& prev[1] == '\n' && prev[0] == '\r' && c == '\n'){
-                        write(s1, htmlheader, strlen(htmlheader));
-                        // printf(htmlheader);
-                        char* size = numToStr((int)stat.st_size -1);
-                        write(s1, size,strlen(size));
-                        // printf(size);
-                        write(s1, htmlEnd, 4);
-                        // printf(htmlEnd);
-                        printf("sizeof(html) = %d\n" ,(int) stat.st_size);
-                        write(s1, html, (size_t)stat.st_size -1 );
-                        // printf(html);
-                        write(s1, htmlEnd, 4);
+                    char* path = malloc(strlen(cwd)+ strlen(request->headers[0].value)+1 );
+                    memcpy(path, cwd, strlen(cwd));
+                    memcpy(path+strlen(cwd), request->headers[0].value, strlen(request->headers[0].value));
+                    path[strlen(cwd)+ strlen(request->headers[0].value)] = '\0';
+                    
+                    if(access(path, F_OK) != 0){
+                        printf("Cannot find file specified: %s\n", path);
+                        write(s1,header404, strlen(header404));
+                        break;
+                    }
+                    int htmlFile = open(path, O_RDONLY);
+                    struct stat stat = {0}; 
+                    fstat(htmlFile, &stat);
+                    char *html = malloc(stat.st_size + 1);
+                    read(htmlFile, html, stat.st_size);
+
+                    html[stat.st_size] = '\0';
+                    printf("%s",html);
+
+                    write(s1, htmlheader, strlen(htmlheader));
+                    // printf(htmlheader);
+                    char* size = numToStr((int)stat.st_size -1);
+                    write(s1, size,strlen(size));
+                    // printf(size);
+                    write(s1, htmlEnd, 4);
+                    // printf(htmlEnd);
+                    printf("sizeof(html) = %d\n" ,(int) stat.st_size);
+                    write(s1, html, (size_t)stat.st_size -1 );
+                    // printf(html);
+                    write(s1, htmlEnd, 4);
                         close(s1);
-                        prev[0] = 0;
-                        prev[1] = 0;
-                        prev[2] = 0;
                         break;
-                    }
-                    prev[2] = prev[1];
-                    prev[1] = prev[0];
-                    prev[0] = c;
                 }
             }
         }
@@ -177,4 +194,3 @@ char* numToStr(int value){
     return ret;
 
 }
-
