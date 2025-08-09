@@ -19,7 +19,7 @@
 char* numToStr(int value);
 
 int main(int argc, char *argv[]){
-    char cwd[PATH_MAX];
+    char cwd[PATH_MAX] = {0};
     if(argc == 1){
         getcwd(cwd, PATH_MAX*sizeof(char)); 
     }else if (argc == 2){
@@ -27,6 +27,11 @@ int main(int argc, char *argv[]){
     }else{
         printf("Too Many Arguments");
         return 10;
+    }
+    if(chroot(cwd) != 0){
+        printf("Could not chroot into %s\n", cwd);
+        printf("Error is %d\n", errno);
+        return 1;
     }
     char* timeoutHeader = 
         "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nConnection: close\r\n\r\nRequest timed out.\r\n";
@@ -137,11 +142,18 @@ int main(int argc, char *argv[]){
                     write(s1, header404, strlen(header404));
                     continue;
                 }
-                char* path = malloc(strlen(cwd)+ strlen(request->headers[0].value)+1);
-                memcpy(path, cwd, strlen(cwd));
-                memcpy(path+strlen(cwd), request->headers[0].value, strlen(request->headers[0].value));
-                path[strlen(cwd)+ strlen(request->headers[0].value)] = '\0';
-
+                char* path = NULL;
+                if(request->headers[0].value[strlen(request->headers[0].value) - 1] == '/'){
+                    path = malloc(strlen(request->headers[0].value)+11);
+                    memcpy(path, request->headers[0].value, strlen(request->headers[0].value));
+                    memcpy(path+strlen(request->headers[0].value), "index.html", 10);
+                    path[strlen(request->headers[0].value) + 10] = '\0';
+                }else{
+                    path = malloc(strlen(request->headers[0].value)+1);
+                    memcpy(path, request->headers[0].value, strlen(request->headers[0].value));
+                    path[strlen(request->headers[0].value)] = '\0';
+                }
+                printf("Accessing path: %s\n", path);
                 if(access(path, F_OK) != 0){
                     printf("Cannot find file specified: %s\n", path);
                     write(s1,header404, strlen(header404));
