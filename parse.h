@@ -47,6 +47,7 @@ typedef struct {
     kVPair* headers;
 }HTTPRequest;
 enum types evalChar(char);
+void destroyParsedHTTP(HTTPRequest* request);
 int stringCmp(char* first, char* sec, int len);
 token* tokenizeString(char* string);
 HTTPRequest* parseHTTP(token* tokens);

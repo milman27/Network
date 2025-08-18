@@ -30,8 +30,10 @@ int main(int argc, char *argv[]){
     }
     if(chroot(cwd) != 0){
         printf("Could not chroot into %s\n", cwd);
-        printf("Error is %d\n", errno);
-        return 1;
+        printf("Error is %d\nIs this okay?(y/N)", errno);
+        if(getchar() != 'y'){
+            return 1;
+        }
     }
     char* timeoutHeader = 
         "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nConnection: close\r\n\r\nRequest timed out.\r\n";
@@ -109,7 +111,6 @@ int main(int argc, char *argv[]){
             printf("Connected to %s:%d\n", ipaddr, ntohs(peeraddr.sin_port) );
             printf("Connected at: %s" , asctime(timeinfo));
             struct pollfd pollrd = {s1, POLLIN, 0};
-            char prev[3];
             if(time(NULL) - connectTime > 60 || time(NULL) - sendTime > 1){
                 write(s1,timeoutHeader, 117);
                 printf("Closing %d due to timeout.\n",s1);
@@ -122,8 +123,16 @@ int main(int argc, char *argv[]){
                 sendTime = time(NULL);
                 int i = 0;
                 for(;poll(&pollrd, (nfds_t)1, 50); i++){
-                    read(s1, &text[i], 1);
+                    if(!read(s1, &text[i], 1)){
+                        printf("Client disconnected. Closing %d\n", s1);
+                        close(s1);
+                        i = 0;
+                        break;
+                    }
                 } 
+                if (i == 0){
+                    continue;
+                }
                 text[i] = '\0';
                 for(int j = 0; j < i; j++){
                     putchar(text[j]);
@@ -140,10 +149,12 @@ int main(int argc, char *argv[]){
                 if(request == NULL){
                     printf("Invalid HTTP Request\n");
                     write(s1, header404, strlen(header404));
+                    close(s1);
+                    printf("Closing %d\n" ,s1);
                     continue;
                 }
                 char* path = NULL;
-                if(request->headers[0].value[strlen(request->headers[0].value) - 1] == '/'){
+                if(stringCmp(&(request->headers[0].value[strlen(request->headers[0].value) - 1]) , "/", 1)){
                     path = malloc(strlen(request->headers[0].value)+11);
                     memcpy(path, request->headers[0].value, strlen(request->headers[0].value));
                     memcpy(path+strlen(request->headers[0].value), "index.html", 10);
@@ -157,6 +168,10 @@ int main(int argc, char *argv[]){
                 if(access(path, F_OK) != 0){
                     printf("Cannot find file specified: %s\n", path);
                     write(s1,header404, strlen(header404));
+                    free(path);
+                    destroyParsedHTTP(request);
+                    close(s1);
+                    printf("Closing %d\n" ,s1);
                     continue;
                 }
                 int htmlFile = open(path, O_RDONLY);
@@ -167,30 +182,29 @@ int main(int argc, char *argv[]){
 
                 html[stat.st_size] = '\0';
                 //printf("%s",html);
-                if(request->headers[0].value[strlen(request->headers[0].value)-1] == 's' &&
-                        request->headers[0].value[strlen(request->headers[0].value)-2] == 'j' ){
-
+                if(stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-2]), "js", 2)){ 
                     write(s1, jsheader, strlen(jsheader));
-                }else if (request->headers[0].value[strlen(request->headers[0].value)-1] == 's' &&
-                        request->headers[0].value[strlen(request->headers[0].value)-2] == 's' &&
-                        request->headers[0].value[strlen(request->headers[0].value)-3] == 'c' ){
+                }else if (stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-3]), "css", 3)){ 
                     write(s1, cssheader, strlen(cssheader));
                 }else{
                     write(s1, htmlheader, strlen(htmlheader));
                 }
                 // printf(htmlheader);
-                char* size = numToStr((int)stat.st_size -1);
+                char* size = numToStr((int)stat.st_size - 1);
                 write(s1, size,strlen(size));
                 // printf(size);
                 write(s1, htmlEnd, 4);
                 // printf(htmlEnd);
-                printf("sizeof(html) = %d\n" ,(int) stat.st_size);
-                write(s1, html, (size_t)stat.st_size -1 );
+                printf("sizeof(html) = %d\n", (int)stat.st_size);
+                write(s1, html, (size_t)stat.st_size - 1);
                 // printf(html);
                 write(s1, htmlEnd, 4);
-                    printf("Closing %d\n" ,s1);
-                    close(s1);
+                destroyParsedHTTP(request);
+                free(html);
+                free(path);
             }
+            printf("Closing %d\n", s1);
+            close(s1);
         }
     }
     close(s0);

@@ -1,5 +1,13 @@
 #include "parse.h"
-
+void destroyParsedHTTP(HTTPRequest* request){
+    for(int i = request->length; i > 0; i--){
+        free(request->headers[i].value);
+        free(request->headers[i].key);
+    }
+    free(request->headers[0].value);
+    free(request->headers);
+    free(request);
+}
 HTTPRequest* parseHTTP(token* tokens){
     HTTPRequest* http = malloc(sizeof(HTTPRequest));
     http->headers = calloc(128, sizeof(void*));
@@ -12,7 +20,8 @@ HTTPRequest* parseHTTP(token* tokens){
     }else{
         printf("%s",tokens[i].start);
         i++;
-        http->rType = INVALIDREQUEST;
+        free(http->headers);
+        free(http);
         return NULL;
     }
     if(tokens[i].type == WHITESPACE)
