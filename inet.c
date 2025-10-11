@@ -16,6 +16,7 @@
 #include <linux/limits.h>
 #include <time.h>
 #include "parse.h"
+#include <signal.h>
 char* numToStr(int value);
 
 int main(int argc, char *argv[]){
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]){
             return 1;
         }
     }
+    signal(SIGPIPE, SIG_IGN);
     char* timeoutHeader = 
         "HTTP/1.1 408 Request Timeout\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nConnection: close\r\n\r\nRequest timed out.\r\n";
     char* header404 =    
@@ -61,7 +63,7 @@ int main(int argc, char *argv[]){
     int pollstdin;
     int pollread;
     struct pollfd pollfd = {s0, POLLIN, 0};
-    struct pollfd pollin = {0, POLLIN, 0};
+    //struct pollfd pollin = {0, POLLIN, 0};
     if(s0 == -1){
         printf("Error is %d",errno);
         return 1;
@@ -74,9 +76,9 @@ int main(int argc, char *argv[]){
     }
     listen(s0, 1);
     for(;;){
-        pollstdin = poll(&pollin, (nfds_t)1, 50);
+        //pollstdin = poll(&pollin, (nfds_t)1, 50);
         pollsock = poll(&pollfd, (nfds_t)1 , 50);
-        if(pollstdin > 0){
+        if(0){
             char buf[3];
             for(;;){
                 char input[1];
