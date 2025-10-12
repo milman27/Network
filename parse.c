@@ -147,6 +147,5 @@ enum types evalChar(char chara){
         return COLON;
     if(chara == ';')
         return SEMICOLON;
-
-        return OTHER;
+    return OTHER;
 }

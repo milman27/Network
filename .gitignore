@@ -1,4 +1,7 @@
 inet
 .*
-/server/*
+/bin
+/obj
+/server
+log.txt
 !.gitignore

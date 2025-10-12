@@ -48,7 +48,7 @@ int main(int argc, char *argv[]){
 
     in_port_t port = htons(9005);
     const struct in_addr sin_addr = {INADDR_ANY};
-    const struct sockaddr_in ip = {AF_INET,port,sin_addr};
+    const struct sockaddr_in ip = {AF_INET,port,sin_addr,{0}};
     int s0 = socket(AF_INET, SOCK_STREAM, 0);
     const int optval = 1;
     int opt = setsockopt(s0, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]){
 
     int s1;
     int pollsock;
-    int pollstdin;
+ //   int pollstdin;
     int pollread;
     struct pollfd pollfd = {s0, POLLIN, 0};
     //struct pollfd pollin = {0, POLLIN, 0};
