@@ -17,6 +17,7 @@
 #include <time.h>
 #include "parse.h"
 #include <signal.h>
+#include "arena.h"
 char* numToStr(int value);
 
 int main(int argc, char *argv[]){
@@ -157,12 +158,12 @@ int main(int argc, char *argv[]){
                 }
                 char* path = NULL;
                 if(stringCmp(&(request->headers[0].value[strlen(request->headers[0].value) - 1]) , "/", 1)){
-                    path = malloc(strlen(request->headers[0].value)+11);
+                    path = arenaAlloc(1,(strlen(request->headers[0].value)+11));
                     memcpy(path, request->headers[0].value, strlen(request->headers[0].value));
                     memcpy(path+strlen(request->headers[0].value), "index.html", 10);
                     path[strlen(request->headers[0].value) + 10] = '\0';
                 }else{
-                    path = malloc(strlen(request->headers[0].value)+1);
+                    path = arenaAlloc(1, (strlen(request->headers[0].value)+1));
                     memcpy(path, request->headers[0].value, strlen(request->headers[0].value));
                     path[strlen(request->headers[0].value)] = '\0';
                 }
@@ -170,8 +171,7 @@ int main(int argc, char *argv[]){
                 if(access(path, F_OK) != 0){
                     printf("Cannot find file specified: %s\n", path);
                     write(s1,header404, strlen(header404));
-                    free(path);
-                    destroyParsedHTTP(request);
+                    arenaFree(1);
                     close(s1);
                     printf("Closing %d\n" ,s1);
                     continue;
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
                 int htmlFile = open(path, O_RDONLY);
                 struct stat stat = {0}; 
                 fstat(htmlFile, &stat);
-                char *html = malloc(stat.st_size + 1);
+                char *html = arenaAlloc(1, (stat.st_size + 1));
                 read(htmlFile, html, stat.st_size);
 
                 html[stat.st_size] = '\0';
@@ -201,9 +201,10 @@ int main(int argc, char *argv[]){
                 write(s1, html, (size_t)stat.st_size - 1);
                 // printf(html);
                 write(s1, htmlEnd, 4);
-                destroyParsedHTTP(request);
-                free(html);
-                free(path);
+                viewMem(3);
+                arenaFree(3);
+                viewMem(1);
+                arenaFree(1);
             }
             printf("Closing %d\n", s1);
             close(s1);
@@ -214,7 +215,7 @@ int main(int argc, char *argv[]){
 
 }
 char* numToStr(int value){
-    char* ret = malloc(100);
+    char* ret = arenaAlloc(3, 100);
     int ptr = 0;
     bool top = FALSE;
     for(int i = 12 ; i >= 0; i--){

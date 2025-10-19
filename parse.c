@@ -1,16 +1,11 @@
+#include "arena.h"
 #include "parse.h"
 void destroyParsedHTTP(HTTPRequest* request){
-    for(int i = request->length; i > 0; i--){
-        free(request->headers[i].value);
-        free(request->headers[i].key);
-    }
-    free(request->headers[0].value);
-    free(request->headers);
-    free(request);
+    arenaFree(1);
 }
 HTTPRequest* parseHTTP(token* tokens){
-    HTTPRequest* http = malloc(sizeof(HTTPRequest));
-    http->headers = calloc(128, sizeof(void*));
+    HTTPRequest* http = arenaAlloc(1,(sizeof(HTTPRequest)));
+    http->headers = arenaAlloc(1, 128*sizeof(void*));
     int i = 0;
 
     for(;tokens[i].type == WHITESPACE || tokens[i].type == NEWLINE;i++){}
@@ -32,7 +27,7 @@ HTTPRequest* parseHTTP(token* tokens){
         sum += tokens[i+j].length; 
     }
     http->headers[0].key = "Path";
-    http->headers[0].value = malloc((sum+1)*sizeof(char));
+    http->headers[0].value = arenaAlloc(1,((sum+1)*sizeof(char)));
     memcpy(http->headers[0].value, tokens[i].start, sum);
     http->headers[0].value[sum] = '\0';
     http->length = 1; 
@@ -64,7 +59,7 @@ HTTPRequest* parseHTTP(token* tokens){
         for(;tokens[i+j].type != COLON;j++){
             sum += tokens[i+j].length;
         }
-        http->headers[http->length].key = malloc((sum+1)*sizeof(char));
+        http->headers[http->length].key = arenaAlloc(1,(sum+1)*sizeof(char));
         memcpy(http->headers[http->length].key, tokens[i].start, sum);
         http->headers[http->length].key[sum] = '\0';
         i += j;
@@ -77,7 +72,7 @@ HTTPRequest* parseHTTP(token* tokens){
         for(;tokens[i+j].type != NEWLINE;j++){
             sum += tokens[i+j].length;
         }
-        http->headers[http->length].value = malloc((sum+1)*sizeof(char));
+        http->headers[http->length].value = arenaAlloc(1,(sum+1)*sizeof(char));
         memcpy(http->headers[http->length].value, tokens[i].start, sum);
         http->headers[http->length].value[sum] = '\0';
         i += j;
@@ -98,7 +93,7 @@ int stringCmp(char* first, char* sec, int len){
     return 1;
 }
 token* tokenizeString(char* string){
-    token* tokens = malloc(strlen(string)*sizeof(token));
+    token* tokens = arenaAlloc(1,(strlen(string)*sizeof(token)));
     tokens[0].type = INVALID;
     int j = 0;
     enum types type = INVALID;

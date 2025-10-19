@@ -9,9 +9,11 @@ BIN_DIR = bin
 
 TARGET = $(BIN_DIR)/inet
 SOURCES = inet.c \
-		  parse.c
+		  parse.c \
+		  arena.c 
 OBJS = $(OBJ_DIR)/inet.o \
-	   $(OBJ_DIR)/parse.o
+	   $(OBJ_DIR)/parse.o \
+	   $(OBJ_DIR)/arena.o 
 
 
 $(TARGET): $(OBJS) 
