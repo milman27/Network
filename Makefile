@@ -1,7 +1,7 @@
 CC = gcc
 WFLAGS =-fsanitize=address -fno-omit-frame-pointer -fno-lto -no-pie
 LDFLAGS = -fsanitize=address -lm -no-pie 
-CFLAGS = $(WFLAGS) -O0 -g3
+CFLAGS = $(WFLAGS) -O0 -g3 -std=c89
 
 RUN_DIR = /home/max/class/d277-front-end-web-development
 OBJ_DIR = obj

@@ -61,15 +61,15 @@ int main(int argc, char *argv[]){
 
     int s1;
     int pollsock;
- //   int pollstdin;
+ /*   int pollstdin;*/
     int pollread;
     struct pollfd pollfd = {s0, POLLIN, 0};
-    //struct pollfd pollin = {0, POLLIN, 0};
+    /*struct pollfd pollin = {0, POLLIN, 0};*/
     if(s0 == -1){
         printf("Error is %d",errno);
         return 1;
     }
-    //unlink("192.168.178.20");
+    /*unlink("192.168.178.20");*/
     int br = bind(s0, (struct sockaddr*)&ip, sizeof(ip));
     if(br == -1){
         printf("Error is %d",errno);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
     }
     listen(s0, 1);
     for(;;){
-        //pollstdin = poll(&pollin, (nfds_t)1, 50);
+        /*pollstdin = poll(&pollin, (nfds_t)1, 50);*/
         pollsock = poll(&pollfd, (nfds_t)1 , 50);
         if(0){
             char buf[3];
@@ -137,13 +137,15 @@ int main(int argc, char *argv[]){
                     continue;
                 }
                 text[i] = '\0';
-                for(int j = 0; j < i; j++){
+                int j = 0;
+                for(; j < i; j++){
                     putchar(text[j]);
                 }
                 token* tokens = tokenizeString(text);
                 /*for(int i = 0; tokens[i].type != END; i++){
                   printf("%d:%d ",tokens[i].type, i );
-                  for(int j = 0; j < tokens[i].length; j++){
+                  int j = 0;
+                  for(; j < tokens[i].length; j++){
                   putchar(tokens[i].start[j]);
                   }
                   putchar('\n');
@@ -183,7 +185,7 @@ int main(int argc, char *argv[]){
                 read(htmlFile, html, stat.st_size);
 
                 html[stat.st_size] = '\0';
-                //printf("%s",html);
+                /*printf("%s",html);*/
                 if(stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-2]), "js", 2)){ 
                     write(s1, jsheader, strlen(jsheader));
                 }else if (stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-3]), "css", 3)){ 
@@ -191,15 +193,15 @@ int main(int argc, char *argv[]){
                 }else{
                     write(s1, htmlheader, strlen(htmlheader));
                 }
-                // printf(htmlheader);
+                /* printf(htmlheader);*/
                 char* size = numToStr((int)stat.st_size - 1);
                 write(s1, size,strlen(size));
-                // printf(size);
+                /* printf(size);*/
                 write(s1, htmlEnd, 4);
-                // printf(htmlEnd);
+                /* printf(htmlEnd);*/
                 printf("sizeof(html) = %d\n", (int)stat.st_size);
                 write(s1, html, (size_t)stat.st_size - 1);
-                // printf(html);
+                /* printf(html);*/
                 write(s1, htmlEnd, 4);
                 viewMem(3);
                 arenaFree(3);
@@ -218,7 +220,8 @@ char* numToStr(int value){
     char* ret = arenaAlloc(3, 100);
     int ptr = 0;
     bool top = FALSE;
-    for(int i = 12 ; i >= 0; i--){
+    int i = 12 ;
+    for(; i >= 0; i--){
         double power = pow(10, i); 
         if(power > value && !top ){
             continue;

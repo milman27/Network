@@ -2,6 +2,7 @@ inet
 .*
 /bin
 /obj
-/server
+/Server
 log.txt
 !.gitignore
+compile_commands.json

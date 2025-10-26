@@ -36,8 +36,8 @@ void arenaFree(arena_id arena){
 }
 
 void* arenaAlloc(arena_id arena, size_t size){
-    //arena: id of arena to request memory in
-    //size: requested size in bytes
+    /*arena: id of arena to request memory in*/
+    /*size: requested size in bytes*/
     void* returnable = 0;
     if(!arenaList) {
         if((arenaList = malloc(MEMUNIT))){

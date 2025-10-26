@@ -84,7 +84,8 @@ int stringCmp(char* first, char* sec, int len){
     if(first == NULL || sec == NULL)
         return 0;
     
-    for(int i = 0; i < len; i++){
+    int i = 0;
+    for(; i < len; i++){
         if(first[i] == '\0' || sec[i] == '\0')
             return first[i] == sec[i];
         if(first[i] != sec[i])
@@ -97,7 +98,8 @@ token* tokenizeString(char* string){
     tokens[0].type = INVALID;
     int j = 0;
     enum types type = INVALID;
-    for(int i = 0;;i++){
+    int i = 0;
+    for(;;i++){
         if((type = evalChar(string[i])) == END || type == SEMICOLON || type == COLON){
            tokens[++j].type = type;
            tokens[j].start = &string[i];
@@ -120,7 +122,8 @@ token* tokenizeString(char* string){
 }
 char* valFromKey(kVPair* map, char* key){
     int len = strlen(key);
-    for(int i = 0; map[i].key != NULL;i++){
+    int i = 0;
+    for(; map[i].key != NULL;i++){
        if(stringCmp(key, map[i].key, len)){
             return map[i].value;
        }
