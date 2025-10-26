@@ -44,6 +44,7 @@ int main(int argc, char *argv[]){
         "HTTP/1.1 404 File Not Found\r\nContent-Type: text/plain\r\nContent-Length: 16\r\nConnection: close\r\n\r\nFile not found.\r\n";
     char* htmlheader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: "; 
     char* jsheader = "HTTP/1.1 200 OK\r\nContent-Type: application/javascript\r\nContent-Length: "; 
+    char* jpgheader = "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: "; 
     char* cssheader = "HTTP/1.1 200 OK\r\nContent-Type: text/css\r\nContent-Length: "; 
     char* htmlEnd = "\r\n\r\n";
 
@@ -190,6 +191,8 @@ int main(int argc, char *argv[]){
                     write(s1, jsheader, strlen(jsheader));
                 }else if (stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-3]), "css", 3)){ 
                     write(s1, cssheader, strlen(cssheader));
+                }else if (stringCmp(&(request->headers[0].value[strlen(request->headers[0].value)-3]), "jpg", 3)){ 
+                    write(s1, jpgheader, strlen(jpgheader)); 
                 }else{
                     write(s1, htmlheader, strlen(htmlheader));
                 }
