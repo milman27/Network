@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <netinet/ip.h> 
 #include <arpa/inet.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <curses.h>
 #include <fcntl.h>
