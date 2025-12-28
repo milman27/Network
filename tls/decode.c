@@ -128,7 +128,7 @@ void revMixColumns(uint8_t* state){
         state[i*4 + 3] = gf256mul(11, temp[0]) ^ gf256mul(13, temp[1]) ^ gf256mul(9, temp[2]) ^ gf256mul(14, temp[3]);
     }	
 }
-void RSAenc(uint8_t* key, uint8_t* state, uint8_t* iV){
+void RSAenc(uint8_t* key, uint8_t* state){
     initAESSBox(subbox);
     initAESRBox(revbox, subbox);
     uint32_t newKeys[44];
@@ -180,7 +180,8 @@ int main(int argc, char* argv[]){
     int method = (argc > 5) ? argv[5][0] : 'x';
     uint8_t iV[16] = {0};
     uint8_t key[16] = {0};
-    uint8_t state[strlen(argv[2])];
+    uint8_t state[strlen(argv[2]) + 16];
+    int blocks = 0;
     switch(method){
         case 'x':
             for(int i = 0; argv[1][i*(1+left)]; i++){
@@ -206,10 +207,10 @@ int main(int argc, char* argv[]){
             for(int i = 0; i < 16; i++){
                 state[i] ^= iV[i];
             }
-            for(int i = 0; i < strlen(argv[2])/(1+right); i+= 16){
-                RSAenc(key, &state[i], iV);
+            for(int i = 0; i < strlen(argv[2])/(1+right); i+= 16, blocks++){
+                RSAenc(key, &state[i]);
                 for(int j = 0; j < 16; j++){
-                    if(iV[j]){
+                    if(iV[j] && (i + 16) < strlen(argv[2])/(1+right)){
                         addRoundKey((uint32_t*)&state[i], (uint32_t*)&state[i+16]);
                         break;
                     }
@@ -217,7 +218,7 @@ int main(int argc, char* argv[]){
             }
             printf("\n");
             if(hex){
-                for(int i =0; i < strlen(argv[2])/2; i++){
+                for(int i =0; i < blocks*16; i++){
                     printf("%02hhx", state[i]);
                 }
             }else{
